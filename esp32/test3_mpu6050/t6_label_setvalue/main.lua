@@ -42,34 +42,15 @@ sys.taskInit(function()
     -- si_z = init_mpu6050_slider_z()
     sys.wait(1500)
 
-    init_bar("x")
-    init_bar("y")
-    init_bar("z")
+    init_bar_xyz()
     --}
     while 1 do
-
 
         -- mpu6050 value display{
         temp_a = get_mpu6xxx_value()
         -- get_mpu6xxx_value()
 
-        temp_x = set_bar_value(value_range[1][1],value_range[1][2],temp_a.x,"x")
-        temp_y = set_bar_value(value_range[2][1],value_range[2][2],temp_a.y,"y")
-        temp_z = set_bar_value(value_range[3][1],value_range[3][2],temp_a.z,"z")
-        -- log.info("temp_x",temp_x)
-        -- temp_x = set_slider_value(value_range[1][1],value_range[1][2],temp_a.x)
-        -- temp_y = set_slider_value(value_range[2][1],value_range[2][2],temp_a.y,"y")
-        -- temp_z = set_slider_value(value_range[3][1],value_range[3][2],temp_a.z)
-
-        lvgl.bar_set_value(bar_list["x"]["bar"], temp_x, lvgl.ANIM_OFF)
-        lvgl.bar_set_value(bar_list["y"]["bar"], temp_y, lvgl.ANIM_OFF)
-        lvgl.bar_set_value(bar_list["z"]["bar"], temp_z, lvgl.ANIM_OFF)
-        -- lvgl.slider_set_value(si_x, temp_x, lvgl.ANIM_OFF)
-        -- lvgl.slider_set_value(si_y, temp_y, lvgl.ANIM_OFF)
-        -- lvgl.slider_set_value(si_z, temp_z, lvgl.ANIM_OFF)
-
-        -- log.debug("get-------",lvgl.slider_get_value(si_1))
-        -- log.info("layout update")
+        display_mpu_value()
         -- }
         sys.wait(10)
     end

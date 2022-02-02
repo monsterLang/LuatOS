@@ -32,26 +32,26 @@ init_lvgl()
 sys.taskInit(function()
 
     -- labtest()
-
-
+ 
     -- mpu6050 value display{
     init_mpu6050()      -- 有wait不能放在外面
     init_mpu6050_cont()
-    -- si_x = init_mpu6050_slider_x()
-    -- si_y = init_mpu6050_slider_y()
-    -- si_z = init_mpu6050_slider_z()
-    sys.wait(1500)
 
     init_bar_xyz()
     --}
+
+    sys.wait(1500)
+
     while 1 do
 
         -- mpu6050 value display{
-        temp_a = get_mpu6xxx_value()
-        -- get_mpu6xxx_value()
+        temp_a = get_mpu6xxx_value()    -- 获取mpu6050的值
 
-        display_mpu_value()
+        display_mpu_value()     -- 绘制三个bar，同时显示当前xyz的参考值（百分比）
         -- }
+
+        judge_status()          -- 如果xy数值超过限制，则触发上下左右四个事件。
+
         sys.wait(10)
     end
 end)

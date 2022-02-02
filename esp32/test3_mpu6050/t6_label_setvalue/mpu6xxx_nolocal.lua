@@ -265,8 +265,6 @@ function get_mpu6xxx_value()
     g = mpu6xxx_get_gyro()
     -- log.info("6050gyrotest", "gyro.x",g.x,"gyro.y",g.y,"gyro.z",g.z)
 
-    
-
     -- judge value range
     -- judge_x(a.x)
     -- judge_y(a.y)
@@ -274,6 +272,39 @@ function get_mpu6xxx_value()
     -- log.info("x",x_max,x_min,"y",y_max,y_min,"z",z_max,z_min)
     return a
 end
+
+function trigger_event()
+    log.info("in trigger")
+    sys.wait(500)
+end
+
+function judge_status()
+    if list_mpu_tempvalue["x"] > 25 then
+        log.info("event -> right")
+        trigger_event()
+    elseif list_mpu_tempvalue["x"] <-25 then
+        log.info("event <- left")
+        trigger_event()
+    -- else
+    --     -- log.info("return x")
+    --     return 0
+    end
+
+    if list_mpu_tempvalue["y"] > 25 then
+        log.info("event |` up")
+        trigger_event()
+    elseif list_mpu_tempvalue["y"] <-25 then
+        log.info("event |_ down")
+        trigger_event()
+    -- else
+    --     -- log.info("return x")
+    --     return 0
+    end
+
+    
+end
+
+
 
 
 

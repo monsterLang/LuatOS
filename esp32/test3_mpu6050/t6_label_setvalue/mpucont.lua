@@ -1,3 +1,7 @@
+--- 模块功能：lvgl display mpu6050 xyz value
+-- @module display mpucont value
+-- @author youkai
+-- @release 2022.02.03
 
 -- 看起来label只能在初始化的时候调用，不确定是不是lua兼容的问题
 -- function init_mpu6050_label()
@@ -88,6 +92,11 @@ label_list["x"] = nil
 label_list["y"] = nil
 label_list["z"] = nil
 
+list_mpu_tempvalue = {}
+list_mpu_tempvalue["x"] = nil
+list_mpu_tempvalue["y"] = nil
+list_mpu_tempvalue["z"] = nil
+
 function init_bar_x()
     --初始化
     --{
@@ -134,6 +143,9 @@ function init_bar_xyz()
     init_bar("x")
     init_bar("y")
     init_bar("z")
+    -- si_x = init_mpu6050_slider_x()
+    -- si_y = init_mpu6050_slider_y()
+    -- si_z = init_mpu6050_slider_z()
 end
 
 function display_mpu_value()
@@ -203,7 +215,10 @@ function set_bar_value(range_max,range_min,value,xyz)
     bar_list[xyz]["range_min"] = 0 -- xyz需要三种最小值，该函数无法兼容，先强制设定
     value_perc2slider = math.floor(value_temp2perc * (bar_list[xyz]["range_max"]-bar_list[xyz]["range_min"]) + bar_list[xyz]["range_min"])
 
-    lvgl.label_set_text(label_list[xyz]," : "..tostring(value_perc2slider-50))
+    V_str_per2slider = value_perc2slider-50
+    lvgl.label_set_text(label_list[xyz]," : "..tostring(V_str_per2slider))
+
+    list_mpu_tempvalue[xyz] =  V_str_per2slider
     -- log.info(value_perc2slider)
     return value_perc2slider
 end

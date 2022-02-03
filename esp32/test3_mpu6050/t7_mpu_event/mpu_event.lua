@@ -3,7 +3,7 @@ require("mpucont")
 
 keyboard_list = {"1","2","3","4","5","6","7","8","9","0"}
 keyboard_list_Max = 10
-keyboard_value = {"input:"}
+keyboard_value = {"in:"}
 
 function trigger_event()
     log.info("in trigger")

@@ -17,6 +17,7 @@ require("mpu6xxx_nolocal")  --setup mpu6050
 require("lvgl_demo")
 require("mpucont")
 require("label_align_test")
+require("mpu_event")
 
 --添加硬狗防止程序卡死
 -- wdt.init(15000)--初始化watchdog设置为15s
@@ -28,6 +29,8 @@ init_esp32_st7735 ()
 init_lvgl()
 -- ----------------setup end------------------------
 
+T1_mpu_bar = 1
+T2_mpu_trigger_event = 1
 -- ================main start================
 sys.taskInit(function()
     -- ps:有wait不能放在外面
@@ -37,10 +40,19 @@ sys.taskInit(function()
     -- mpu6050 value display{
     init_mpu6050()      -- 初始化三轴传感器
 
-    -- 显示mpu6050数值
-    init_mpu6050_cont()
-    init_bar_xyz()
+    -- func1: 创建cont存放bar，用于显示当前数值
+    if T1_mpu_bar == 1 then
+        init_mpu6050_cont()
+        init_bar_xyz()
+    end
+
     --}
+
+    -- func2: create temp label to display font
+    if T2_mpu_trigger_event == 1 then
+        init_event_label()
+
+    end
 
     sys.wait(1500)
 
@@ -48,11 +60,18 @@ sys.taskInit(function()
 
         -- mpu6050 value display{
         temp_a = get_mpu6xxx_value()    -- 获取mpu6050的值
-
-        display_mpu_value()     -- 绘制三个bar，同时显示当前xyz的参考值（百分比）
+        
+        -- func1: 显示当前数值
+        if T1_mpu_bar == 1 then
+            display_mpu_value()     -- 绘制三个bar，同时显示当前xyz的参考值（百分比）
+        end
         -- }
 
-        -- judge_status()          -- 如果xy数值超过限制，则触发上下左右四个事件。
+        if T2_mpu_trigger_event == 1 then
+            save_mpu_temp_value()
+            -- log.info("test")
+            judge_status()          -- 如果xy数值超过限制，则触发上下左右四个事件。
+        end
 
         sys.wait(10)
     end

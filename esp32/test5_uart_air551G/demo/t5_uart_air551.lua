@@ -13,12 +13,18 @@ tag_uart = "test5_uart"
 id = 1
 len = 1024
 
-get_gga_time = 10000
+get_gga_time = 2000
 
-date_longitude = ""     -- 经度
-date_latitude = ""      -- 纬度
-date_GGA = ""
-
+data_time = ""
+data_longitude = ""     -- 经度
+data_latitude = ""      -- 纬度
+data_GGA = ""
+data_GGA_status = ""
+GGA_list = {}
+GGA_list["time"] = data_time
+GGA_list["x"] = data_longitude
+GGA_list["y"] = data_latitude
+GGA_list["status"]= data_GGA_status
 
 function init_uart_air551()
     -- uart.on(1, "recv", function(id, len)
@@ -43,6 +49,7 @@ function init_uart_air551()
     timex = sys.timerLoopStart(uart_air551_receive,get_gga_time)
     log.info(tag_uart,"time:",timex)
 
+    init_air551G_cont()
 end
 
 function uart_air551_send()
@@ -58,7 +65,7 @@ end
 
 -- 获取串口数据
 function uart_air551_receive()
-    log.info("uart_air551_receive")
+    log.info("uart_air551_receive start---------------")
     local s = ""
     s = uart.read(id, len)
     if #s > 0 then -- #s 是取字符串的长度
@@ -69,10 +76,11 @@ function uart_air551_receive()
         -- log.info("uart", "receive", id, #s, s:toHex())
     end
 
-    date_GGA = get_gga(s)
-    log.info("date_GGA",date_GGA)
+    data_GGA = get_gga(s)
+    log.info("data_GGA",data_GGA)
 
-    get_gga_longitude_latitude(date_GGA)
+    get_gga_longitude_latitude(data_GGA)
+    log.info("uart_air551_receive end---------------")
 end
 
 --测试数据提取
@@ -86,7 +94,7 @@ end
 
 -- 提取一组数据
 function get_gga(value)
-    temp_start = string.find(value,'$GNGGA',1)
+    temp_start = string.find(value,'GGA',1)-3
     temp_end = string.find(value,'\r',1)
     temp_gga = string.sub(value,temp_start,temp_end-1)
     -- log.info("temp_value:",temp_start,temp_end,temp_gga)
@@ -98,21 +106,129 @@ function get_gga_longitude_latitude(value_gga)
     if value_gga == "" then     --数据第一次异常
         return -1
     end
+
+    -- 获取GGA数据
+    -- log.info("L2_temp",L2_temp)
     L2_temp = string.sub(value_gga,8)   -- +8是因为"$gngga"
-    log.info("L2_temp",L2_temp)
+
+    -- 获取时间
+    data_time_h = string.sub(L2_temp,1,2)
+    data_time_m = string.sub(L2_temp,3,4)
+    data_time_s = string.sub(L2_temp,4,5)
+    -- data_time_h = string.t(data_time_h)
+
+    data_time_h = math.floor(data_time_h +8)
+    -- log.info(type(data_time_h),data_time_h)
+    if data_time_h >= 24 then
+        data_time_h = data_time_h -24 
+    end
+    -- data_time_h = tostring(data_time_h)
+    if data_time_h <10 then
+        data_time_h = '0'..data_time_h
+    end
+    -- log.info(type(data_time_h),data_time_h)
+    -- data_time_h = tostring(data_time_h)
+    -- data_time_h = string.(8 + string.toValue(data_time_h))
+    data_time = data_time_h..":"..data_time_m..":"..data_time_s
+
+    -- 获取纬度
     L2_temp_x_start = string.find(L2_temp,',',1)+1
     L2_temp_x_end = string.find(L2_temp,',N',1)-1
+    data_longitude = string.sub(L2_temp,L2_temp_x_start,L2_temp_x_end)
 
-    date_longitude = string.sub(L2_temp,L2_temp_x_start,L2_temp_x_end)
-
+    -- 获取经度
     L2_temp_y_start = L2_temp_x_end+4
     -- +4是因为"time,xxx,N,yyy,E",",N"后面三个才是y开始
     L2_temp_y_end = string.find(L2_temp,',E',1)-1
-    date_latitude = string.sub(L2_temp,L2_temp_y_start,L2_temp_y_end)     
-    log.info("L2_temp_gga",date_longitude,date_latitude)
+    data_latitude = string.sub(L2_temp,L2_temp_y_start,L2_temp_y_end)
+    -- log.info("L2_temp_gga",data_longitude,data_latitude)
     -- log.info("temp_value:",temp_start,temp_end,temp_gga)
+
+    -- 获取定位指示",E,定位指示,"
+    L2_temp_status_start = L2_temp_y_end + 4
+    L2_temp_status_end = L2_temp_status_start 
+    data_GGA_status = string.sub(L2_temp,L2_temp_status_start,L2_temp_status_end)
+
+    -- log.info("data_GGA_status",data_GGA_status)
+
+    if data_GGA_status == "0" then
+        log.info("定位指示为0,未定位")
+    elseif data_GGA_status == "1" then
+        log.info("定位指示为1,SPS 模式,定位有效")
+    elseif data_GGA_status == "2" then
+        log.info("定位指示为2,差分,SPS 模式,定位有效")
+    end
+
+    GGA_list["time"] = data_time
+    GGA_list["x"] = data_longitude
+    GGA_list["y"] = data_latitude
+    GGA_list["status"]= data_GGA_status
+
+    -- 显示当前状态
+    set_air551G_cont()
+
     return temp_gga
 end
+
+function init_air551G_cont()
+    air551G_cont = lvgl.cont_create(lvgl.scr_act(), nil)
+    lvgl.obj_set_size(air551G_cont,128,160)
+    lvgl.obj_set_auto_realign(air551G_cont, true) 
+    lvgl.obj_align_origo(air551G_cont, nil, lvgl.ALIGN_CENTER, 0, 0)
+    lvgl.cont_set_fit(air551G_cont, lvgl.FIT_NONE)   --此时cont未设置自适应状态，则内容在cont中
+    lvgl.cont_set_layout(air551G_cont, lvgl.LAYOUT_COLUMN_LEFT) --布局靠左
+    --}
+
+    log.info("scr_load",lvgl.scr_load(air551G_cont))     --显示   容器
+
+    --创建标签label
+    GGA_label = lvgl.label_create(air551G_cont, nil)
+    lvgl.label_set_text(GGA_label, "GGA_data")
+    lvgl.obj_set_pos(GGA_label, 2, 5)
+
+    -- -- 分开数据
+    -- GGA_status_label = lvgl.label_create(air551G_cont, nil)
+    -- lvgl.label_set_text(GGA_status_label, "status"..data_GGA_status)
+    -- lvgl.obj_set_pos(GGA_status_label, 2, 5)
+
+    -- sys.wait(500)
+
+    -- GGA_x_label = lvgl.label_create(air551G_cont, nil)
+    -- lvgl.label_set_text(GGA_x_label, "longitude"..data_longitude)
+    -- lvgl.obj_set_pos(GGA_x_label, 2, 25)
+
+    -- sys.wait(500)
+
+    -- GGA_y_label = lvgl.label_create(air551G_cont, nil)
+    -- lvgl.label_set_text(GGA_y_label, "latitude"..data_latitude)
+    -- lvgl.obj_set_pos(GGA_y_label, 2, 35)
+end
+
+function set_air551G_cont()
+    -- lvgl.label_set_text(GGA_status_label, "status"..data_GGA_status)
+    -- lvgl.label_set_text(GGA_x_label, "longitude"..data_longitude)
+    -- lvgl.label_set_text(GGA_y_label, "latitude"..data_latitude)
+
+    -- lvgl.label_set_text(GGA_status_label, "status: "..data_GGA_status)
+    -- lvgl.label_set_text(GGA_x_label, "x: "..data_longitude)
+    -- lvgl.label_set_text(GGA_y_label, "y: "..data_latitude)
+
+    string_GGA = "GGA_data"..'\r'.."time: "..GGA_list["time"]..'\r'.."x: "..GGA_list["x"]..'\r'.."y: "..GGA_list["y"]..'\r'.."status: "..GGA_list["status"]
+
+    log.info("string_GGA",string_GGA)
+
+    if string_GGA == "" then
+        return -1
+    end
+    lvgl.label_set_text(GGA_label, string_GGA)
+
+end
+
+
+-- GGA_list["time"] = data_time
+-- GGA_list["x"] = data_longitude
+-- GGA_list["y"] = data_latitude
+-- GGA_list["status"]= data_GGA_status
 
 -- sys.timerLoopStart(uart.write,1000, uartid, "test")
 -- -- 收取数据会触发回调, 这里的"receive" 是固定值

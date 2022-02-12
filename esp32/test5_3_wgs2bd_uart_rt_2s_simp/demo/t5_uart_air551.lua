@@ -8,12 +8,16 @@
 --     8,--数据位
 --     1--停止位
 -- )
+
+-- require("t5_change_draw")
+-- require("t5_wgs2lcd")
+
 tag_uart = "test5_uart"
 
 id = 1
 len = 1024
 
-get_gga_time = 2000
+get_gga_time = 1000
 
 data_time = ""
 data_longitude = ""     -- 经度
@@ -26,9 +30,7 @@ GGA_list["x"] = data_longitude
 GGA_list["y"] = data_latitude
 GGA_list["status"]= data_GGA_status
 
-num_rec = 0
-
-function init_uart_air551()
+function rt_init_uart_air551()
     -- uart.on(1, "recv", function(id, len)
     --     local data = uart.read(1, 1024)
     --     log.info("uart2", data)
@@ -45,13 +47,41 @@ function init_uart_air551()
     sys.wait(1000)
 
     -- func1: 接收数据，只要收到就接收
+    -- uart.on(id, "receive",rt_uart_air551_receive)
+
+    status_rt_receive = 0
+    num_rt_receive = 0  --记录当前多少次触发
+    -- func2: 定时接收
+    timex = sys.timerLoopStart(rt_uart_air551_receive,get_gga_time)
+    log.info(tag_uart,"time:",timex)
+
+end
+
+function init_uart_air551()
+    -- uart.on(1, "recv", function(id, len)
+    --     local data = uart.read(1, 1024)
+    --     log.info("uart2", data)
+    --     -- libgnss.parse(data)
+    -- end)
+    log.info(tag_uart,"init_uart_air551")
+    uart.setup(1, 115200)
+
+    uart_air551_NMEA_set()
+
+    -- 定时发送数据
+    -- timex = sys.timerLoopStart(uart_air551_send,1000)
+    -- log.info(tag_uart,"time:",timex)
+
+    sys.wait(1000)
+
+    -- func1: 接收数据，只要收到就接收
     -- uart.on(id, "receive",uart_air551_receive)
 
     -- func2: 定时接收
     timex = sys.timerLoopStart(uart_air551_receive,get_gga_time)
     log.info(tag_uart,"time:",timex)
 
-    init_air551G_cont()
+    init_air551G_cont() -- 暂时先不显示，后期改进两个界面
 end
 
 function uart_air551_send()
@@ -66,16 +96,49 @@ function uart_air551_NMEA_set()
 end
 
 -- 获取串口数据
-function uart_air551_receive()
+function rt_uart_air551_receive()
+
     log.info("uart_air551_receive start---------------")
-    num_rec = num_rec + 1
     local s = ""
     s = uart.read(id, len)
+    print("#s",#s)
     if #s > 0 then -- #s 是取字符串的长度
         -- 如果传输二进制/十六进制数据, 部分字符不可见, 不代表没收到
         -- 关于收发hex值,请查阅 https://doc.openluat.com/article/583
         -- log.info("uart", "receive", id, #s, s)   -- 这句将接收的都打印出来
-        log.info("get air551","uart", "receive", id, #s)
+        status_rt_receive = 1
+        num_rt_receive = num_rt_receive+1
+
+        log.info("get air551","uart", "receive", id, #s)--",s"加上显示串口接收值
+        -- log.info("uart", "receive", id, #s, s:toHex())
+    else
+        return -1
+    end
+
+    data_GGA = get_gga(s)
+    -- log.info("data_GGA",data_GGA)
+    get_gga_longitude_latitude(data_GGA)
+
+    -- 尝试在uart接收触发时执行画点命令
+    -- realtime_test()
+
+    status_rt_receive = 0
+
+    log.info("uart_air551_receive end---------------")
+    return 
+end
+
+-- 获取串口数据
+function uart_air551_receive()
+    log.info("uart_air551_receive start---------------")
+    local s = ""
+    s = uart.read(id, len)
+    print("#s",#s)
+    if #s > 0 then -- #s 是取字符串的长度
+        -- 如果传输二进制/十六进制数据, 部分字符不可见, 不代表没收到
+        -- 关于收发hex值,请查阅 https://doc.openluat.com/article/583
+        -- log.info("uart", "receive", id, #s, s)   -- 这句将接收的都打印出来
+        log.info("get air551","uart", "receive", id, #s,s)
         -- log.info("uart", "receive", id, #s, s:toHex())
     end
 
@@ -99,6 +162,7 @@ end
 function get_gga(value)
     temp_start = string.find(value,'GGA',1)-3
     temp_end = string.find(value,'\r',1)
+    -- print(type(temp_start),type(temp_end))
     temp_gga = string.sub(value,temp_start,temp_end-1)
     -- log.info("temp_value:",temp_start,temp_end,temp_gga)
     return temp_gga
@@ -144,8 +208,6 @@ function get_gga_longitude_latitude(value_gga)
     -- +4是因为"time,xxx,N,yyy,E",",N"后面三个才是y开始
     L2_temp_y_end = string.find(L2_temp,',E',1)-1
     data_latitude = string.sub(L2_temp,L2_temp_y_start,L2_temp_y_end)
-    -- log.info("L2_temp_gga",data_longitude,data_latitude)
-    -- log.info("temp_value:",temp_start,temp_end,temp_gga)
 
     -- 获取定位指示",E,定位指示,"
     L2_temp_status_start = L2_temp_y_end + 4
@@ -167,10 +229,8 @@ function get_gga_longitude_latitude(value_gga)
     GGA_list["y"] = data_latitude
     GGA_list["status"]= data_GGA_status
 
-    -- 显示当前状态
-    set_air551G_cont()
-
-    return temp_gga
+    -- 返回时间，xy，状态
+    return GGA_list["time"],GGA_list["x"],GGA_list["y"],GGA_list["status"]
 end
 
 function init_air551G_cont()
@@ -189,34 +249,11 @@ function init_air551G_cont()
     lvgl.label_set_text(GGA_label, "GGA_data")
     lvgl.obj_set_pos(GGA_label, 2, 5)
 
-    -- -- 分开数据
-    -- GGA_status_label = lvgl.label_create(air551G_cont, nil)
-    -- lvgl.label_set_text(GGA_status_label, "status"..data_GGA_status)
-    -- lvgl.obj_set_pos(GGA_status_label, 2, 5)
-
-    -- sys.wait(500)
-
-    -- GGA_x_label = lvgl.label_create(air551G_cont, nil)
-    -- lvgl.label_set_text(GGA_x_label, "longitude"..data_longitude)
-    -- lvgl.obj_set_pos(GGA_x_label, 2, 25)
-
-    -- sys.wait(500)
-
-    -- GGA_y_label = lvgl.label_create(air551G_cont, nil)
-    -- lvgl.label_set_text(GGA_y_label, "latitude"..data_latitude)
-    -- lvgl.obj_set_pos(GGA_y_label, 2, 35)
 end
 
 function set_air551G_cont()
-    -- lvgl.label_set_text(GGA_status_label, "status"..data_GGA_status)
-    -- lvgl.label_set_text(GGA_x_label, "longitude"..data_longitude)
-    -- lvgl.label_set_text(GGA_y_label, "latitude"..data_latitude)
 
-    -- lvgl.label_set_text(GGA_status_label, "status: "..data_GGA_status)
-    -- lvgl.label_set_text(GGA_x_label, "x: "..data_longitude)
-    -- lvgl.label_set_text(GGA_y_label, "y: "..data_latitude)
-
-    string_GGA = "GGA_data"..'\r'.."time: "..GGA_list["time"]..'\r'.."x: "..GGA_list["x"]..'\r'.."y: "..GGA_list["y"]..'\r'.."status: "..GGA_list["status"]..'\rrec_num: '..num_rec
+    string_GGA = "GGA_data"..'\r'.."time: "..GGA_list["time"]..'\r'.."x: "..GGA_list["x"]..'\r'.."y: "..GGA_list["y"]..'\r'.."status: "..GGA_list["status"]
 
     log.info("string_GGA",string_GGA)
 
@@ -227,89 +264,24 @@ function set_air551G_cont()
 
 end
 
+function ddmmmm2dd()
+    -- 计算失败
+    -- temp_dd_lng = string.format("%.10f", a)  -- 字符转浮点
+    temp_dd_lng = string.format("%.10f", lng_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lng ,type(temp_dd_lng))
+    local dd_lng_int = math.floor(temp_dd_lng/100)
+    local dd_lng_float = (temp_dd_lng-dd_lng_int*100)*100/60
+    -- log.info("dd_lng_float",type(dd_lng_float))
+    local dd_lng = dd_lng_int + dd_lng_float/100
+    print("dd_lng = ",dd_lng_int,dd_lng_float,dd_lng)
 
--- GGA_list["time"] = data_time
--- GGA_list["x"] = data_longitude
--- GGA_list["y"] = data_latitude
--- GGA_list["status"]= data_GGA_status
+    -- temp_dd_lat = string.format("%.10f", b)  -- 字符转浮点
+    temp_dd_lat = string.format("%.10f", lat_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lat)
+    local dd_lat_int = math.floor(temp_dd_lat/100)
+    local dd_lat_float = (temp_dd_lat-dd_lat_int*100)*100/60
+    local dd_lat = dd_lat_int + dd_lat_float/100
+    print("dd_lat = ",dd_lat_int,dd_lat_float,dd_lat)
 
--- sys.timerLoopStart(uart.write,1000, uartid, "test")
--- -- 收取数据会触发回调, 这里的"receive" 是固定值
--- uart.on(uartid, "receive", function(id, len)
---     local s = ""
---     repeat
---         -- 如果是air302, len不可信, 传1024
---         -- s = uart.read(id, 1024)
---         s = uart.read(id, len)
---         if #s > 0 then -- #s 是取字符串的长度
---             -- 如果传输二进制/十六进制数据, 部分字符不可见, 不代表没收到
---             -- 关于收发hex值,请查阅 https://doc.openluat.com/article/583
---             log.info("uart", "receive", id, #s, s)
---             -- log.info("uart", "receive", id, #s, s:toHex())
---         end
---     until s == ""
--- end)
-
-
--- -- LuaTools需要PROJECT和VERSION这两个信息
--- PROJECT = "uart_irq"
--- VERSION = "1.0.0"
-
--- log.info("main", PROJECT, VERSION)
-
--- -- 引入必要的库文件(lua编写), 内部库不需要require
--- local sys = require "sys"
-
--- if wdt then
---     --添加硬狗防止程序卡死，在支持的设备上启用这个功能
---     wdt.init(15000)--初始化watchdog设置为15s
---     sys.timerLoopStart(wdt.feed, 10000)--10s喂一次狗
--- end
-
--- log.info("main", "uart demo")
-
--- local uartid = 1 -- 根据实际设备选取不同的uartid
-
--- --初始化
--- local result = uart.setup(
---     uartid,--串口id
---     115200,--波特率
---     8,--数据位
---     1--停止位
--- )
-
-
--- --循环发数据
--- sys.timerLoopStart(uart.write,1000, uartid, "test")
--- -- 收取数据会触发回调, 这里的"receive" 是固定值
--- uart.on(uartid, "receive", function(id, len)
---     local s = ""
---     repeat
---         -- 如果是air302, len不可信, 传1024
---         -- s = uart.read(id, 1024)
---         s = uart.read(id, len)
---         if #s > 0 then -- #s 是取字符串的长度
---             -- 如果传输二进制/十六进制数据, 部分字符不可见, 不代表没收到
---             -- 关于收发hex值,请查阅 https://doc.openluat.com/article/583
---             log.info("uart", "receive", id, #s, s)
---             -- log.info("uart", "receive", id, #s, s:toHex())
---         end
---     until s == ""
--- end)
-
--- -- 并非所有设备都支持sent事件
--- uart.on(uartid, "sent", function(id)
---     log.info("uart", "sent", id)
--- end)
-
--- -- sys.taskInit(function()
--- --     while 1 do
--- --         sys.wait(500)
--- --     end
--- -- end)
-
-
--- -- 用户代码已结束---------------------------------------------
--- -- 结尾总是这一句
--- sys.run()
--- -- sys.run()之后后面不要加任何语句!!!!!
+    return dd_lng,dd_lat
+end

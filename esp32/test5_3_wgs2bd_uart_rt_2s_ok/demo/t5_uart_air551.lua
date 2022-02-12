@@ -8,12 +8,16 @@
 --     8,--数据位
 --     1--停止位
 -- )
+
+-- require("t5_change_draw")
+-- require("t5_wgs2lcd")
+
 tag_uart = "test5_uart"
 
 id = 1
 len = 1024
 
-get_gga_time = 2000
+get_gga_time = 1000
 
 data_time = ""
 data_longitude = ""     -- 经度
@@ -26,7 +30,33 @@ GGA_list["x"] = data_longitude
 GGA_list["y"] = data_latitude
 GGA_list["status"]= data_GGA_status
 
-num_rec = 0
+function rt_init_uart_air551()
+    -- uart.on(1, "recv", function(id, len)
+    --     local data = uart.read(1, 1024)
+    --     log.info("uart2", data)
+    --     -- libgnss.parse(data)
+    -- end)
+    log.info(tag_uart,"init_uart_air551")
+    uart.setup(1, 115200)
+
+    uart_air551_NMEA_set()
+    -- 定时发送数据
+    -- timex = sys.timerLoopStart(uart_air551_send,1000)
+    -- log.info(tag_uart,"time:",timex)
+
+    sys.wait(1000)
+
+    -- func1: 接收数据，只要收到就接收
+    -- uart.on(id, "receive",rt_uart_air551_receive)
+
+    status_rt_receive = 0
+    num_rt_receive = 0  --记录当前多少次触发
+    -- func2: 定时接收
+    timex = sys.timerLoopStart(rt_uart_air551_receive,get_gga_time)
+    log.info(tag_uart,"time:",timex)
+
+    -- init_air551G_cont() -- 暂时先不显示，后期改进两个界面
+end
 
 function init_uart_air551()
     -- uart.on(1, "recv", function(id, len)
@@ -51,7 +81,7 @@ function init_uart_air551()
     timex = sys.timerLoopStart(uart_air551_receive,get_gga_time)
     log.info(tag_uart,"time:",timex)
 
-    init_air551G_cont()
+    init_air551G_cont() -- 暂时先不显示，后期改进两个界面
 end
 
 function uart_air551_send()
@@ -66,16 +96,49 @@ function uart_air551_NMEA_set()
 end
 
 -- 获取串口数据
-function uart_air551_receive()
+function rt_uart_air551_receive()
+
     log.info("uart_air551_receive start---------------")
-    num_rec = num_rec + 1
     local s = ""
     s = uart.read(id, len)
+    print("#s",#s)
     if #s > 0 then -- #s 是取字符串的长度
         -- 如果传输二进制/十六进制数据, 部分字符不可见, 不代表没收到
         -- 关于收发hex值,请查阅 https://doc.openluat.com/article/583
         -- log.info("uart", "receive", id, #s, s)   -- 这句将接收的都打印出来
-        log.info("get air551","uart", "receive", id, #s)
+        status_rt_receive = 1
+        num_rt_receive = num_rt_receive+1
+
+        log.info("get air551","uart", "receive", id, #s)--",s"加上显示串口接收值
+        -- log.info("uart", "receive", id, #s, s:toHex())
+    else
+        return -1
+    end
+
+    data_GGA = get_gga(s)
+    -- log.info("data_GGA",data_GGA)
+    get_gga_longitude_latitude(data_GGA)
+
+    -- 尝试在uart接收触发时执行画点命令
+    -- realtime_test()
+
+    status_rt_receive = 0
+
+    log.info("uart_air551_receive end---------------")
+    return 
+end
+
+-- 获取串口数据
+function uart_air551_receive()
+    log.info("uart_air551_receive start---------------")
+    local s = ""
+    s = uart.read(id, len)
+    print("#s",#s)
+    if #s > 0 then -- #s 是取字符串的长度
+        -- 如果传输二进制/十六进制数据, 部分字符不可见, 不代表没收到
+        -- 关于收发hex值,请查阅 https://doc.openluat.com/article/583
+        -- log.info("uart", "receive", id, #s, s)   -- 这句将接收的都打印出来
+        log.info("get air551","uart", "receive", id, #s,s)
         -- log.info("uart", "receive", id, #s, s:toHex())
     end
 
@@ -99,6 +162,7 @@ end
 function get_gga(value)
     temp_start = string.find(value,'GGA',1)-3
     temp_end = string.find(value,'\r',1)
+    -- print(type(temp_start),type(temp_end))
     temp_gga = string.sub(value,temp_start,temp_end-1)
     -- log.info("temp_value:",temp_start,temp_end,temp_gga)
     return temp_gga
@@ -158,6 +222,7 @@ function get_gga_longitude_latitude(value_gga)
         log.info("定位指示为0,未定位")
     elseif data_GGA_status == "1" then
         log.info("定位指示为1,SPS 模式,定位有效")
+        -- GGA_ok()
     elseif data_GGA_status == "2" then
         log.info("定位指示为2,差分,SPS 模式,定位有效")
     end
@@ -167,10 +232,18 @@ function get_gga_longitude_latitude(value_gga)
     GGA_list["y"] = data_latitude
     GGA_list["status"]= data_GGA_status
 
+    -- print(GGA_list["time"],GGA_list["x"],GGA_list["y"],GGA_list["status"])
     -- 显示当前状态
-    set_air551G_cont()
+    -- set_air551G_cont()
 
-    return temp_gga
+    -- 转换为dd.dddd
+    -- GGA_ok()
+
+    -- 返回GGA数据（字符串）
+    -- return temp_gga
+
+    -- 返回时间，xy，状态
+    return GGA_list["time"],GGA_list["x"],GGA_list["y"],GGA_list["status"]
 end
 
 function init_air551G_cont()
@@ -216,7 +289,7 @@ function set_air551G_cont()
     -- lvgl.label_set_text(GGA_x_label, "x: "..data_longitude)
     -- lvgl.label_set_text(GGA_y_label, "y: "..data_latitude)
 
-    string_GGA = "GGA_data"..'\r'.."time: "..GGA_list["time"]..'\r'.."x: "..GGA_list["x"]..'\r'.."y: "..GGA_list["y"]..'\r'.."status: "..GGA_list["status"]..'\rrec_num: '..num_rec
+    string_GGA = "GGA_data"..'\r'.."time: "..GGA_list["time"]..'\r'.."x: "..GGA_list["x"]..'\r'.."y: "..GGA_list["y"]..'\r'.."status: "..GGA_list["status"]
 
     log.info("string_GGA",string_GGA)
 
@@ -227,6 +300,71 @@ function set_air551G_cont()
 
 end
 
+
+lng_ddmmmm = "3114.474413632" --经度 x 与赤道垂直
+lat_ddmmmm = "12128.43953236" --维度 y 与赤道平行
+
+function ddmmmm2dd()
+
+    -- temp_dd_lng = string.format("%.10f", lng_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lng)
+    -- local dd_lng_int = math.floor(temp_dd_lng/100.0)
+    -- local dd_lng_float = (temp_dd_lng-dd_lng_int*100.0)*100.0/60.0
+    -- local dd_lng = dd_lng_int + dd_lng_float/100.0
+    -- print("dd_lng = ",dd_lng_int,dd_lng_float,dd_lng)
+    
+    -- temp_dd_lat = string.format("%.10f", lat_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lat)
+    -- local dd_lat_int = math.floor(temp_dd_lat/100.0)
+    -- local dd_lat_float = (temp_dd_lat-dd_lat_int*100.0)*100.0/60.0
+    -- local dd_lat = dd_lat_int + dd_lat_float/100.0
+    -- print("dd_lat = ",dd_lat_int,dd_lat_float,dd_lat)
+
+    -- 小数点
+    -- temp_dd_lng = string.format("%.10f", lng_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lng)
+    -- local dd_lng_int = math.floor(temp_dd_lng/100.0000000)
+    -- print("temp: ",temp_dd_lng)
+    -- local dd_lng_float = (temp_dd_lng-dd_lng_int*100.0000000)*100.0000000/60.0000000
+    -- local dd_lng = dd_lng_int + dd_lng_float/100.0000000
+    -- print("dd_lng = ",dd_lng_int,dd_lng_float,dd_lng)
+    
+    -- temp_dd_lat = string.format("%.10f", lat_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lat)
+    -- local dd_lat_int = math.floor(temp_dd_lat/100.0000000)
+    -- local dd_lat_float = (temp_dd_lat-dd_lat_int*100.0000000)*100.0000000/60.0000000
+    -- local dd_lat = dd_lat_int + dd_lat_float/100.0000000
+    -- print("dd_lat = ",dd_lat_int,dd_lat_float,dd_lat)
+
+    -- 计算失败
+    -- temp_dd_lng = string.format("%.10f", a)  -- 字符转浮点
+    temp_dd_lng = string.format("%.10f", lng_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lng ,type(temp_dd_lng))
+    local dd_lng_int = math.floor(temp_dd_lng/100)
+    local dd_lng_float = (temp_dd_lng-dd_lng_int*100)*100/60
+    -- log.info("dd_lng_float",type(dd_lng_float))
+    local dd_lng = dd_lng_int + dd_lng_float/100
+    print("dd_lng = ",dd_lng_int,dd_lng_float,dd_lng)
+
+    -- temp_dd_lat = string.format("%.10f", b)  -- 字符转浮点
+    temp_dd_lat = string.format("%.10f", lat_ddmmmm)  -- 字符转浮点
+    -- print("temp: ",temp_dd_lat)
+    local dd_lat_int = math.floor(temp_dd_lat/100)
+    local dd_lat_float = (temp_dd_lat-dd_lat_int*100)*100/60
+    local dd_lat = dd_lat_int + dd_lat_float/100
+    print("dd_lat = ",dd_lat_int,dd_lat_float,dd_lat)
+
+    return dd_lng,dd_lat
+end
+
+-- ddmmmm2dd(lng_ddmmmm,lat_ddmmmm)
+
+-- GGA_list["x"] = data_longitude
+-- GGA_list["y"] = data_latitude
+function GGA_ok()
+    temp_lng,temp_lat = ddmmmm2dd(GGA_list["x"],GGA_list["y"])
+    
+end
 
 -- GGA_list["time"] = data_time
 -- GGA_list["x"] = data_longitude

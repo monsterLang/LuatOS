@@ -11,38 +11,34 @@ log.info("main", PROJECT, VERSION)
 
 -- sys库是标配
 _G.sys = require("sys")
-
-
-
-tag = "fsTest"
-
-function fsTest()
-    if fs == nil then
-        log.error(tag, "this fireware is not support fs")
-        return
-    end
-    log.info(tag, "START")
-    log.info(tag .. ".fsstat:", fs.fsstat())
-    log.info(tag .. ".fsstat:/", fs.fsstat("/"))
-    log.info(tag .. ".fsstat:/luadb/", fs.fsstat("/luadb/"))
-    log.info(tag .. ".fsize:/luadb/code.png", fs.fsize("/luadb/code.png"))
-    log.info(tag .. ".fsstat:/luadb/main.luac", fs.fsstat("/luadb/main.luac"))
-    log.info(tag .. ".fsstat:/luadb/main.lua", fs.fsstat("/luadb/main.lua"))
-
-    -- names = io.lsdir("/ldata/")
-    -- log.info("dir",names)
-    -- log.info(tag .. ".fsize", fs.fsize("/luadb/main.luac"))
-    log.info(tag, "DONE")
-end
+require("t4_fs_info")
 
 --添加硬狗防止程序卡死
 -- wdt.init(15000)--初始化watchdog设置为15s
 -- sys.timerLoopStart(wdt.feed, 10000)--10s喂一次狗
 
+-- fs_test_boottime()
+T4_fs = 1
+if T4_fs == 1 then
+    -- fs_info()
+
+    -- demo_fs_mkdir() --接口未完成
+
+    fs_read_txt("/luadb/boot_time.txt")
+
+    
+
+    -- fs_write_txt("/test_write.txt")
+
+    -- fs_read_txt("/test_write.txt")
+end
+
+
 -- ================main start================
 sys.taskInit(function()
-    fsTest()
+    -- fs_info()
     while 1 do
+        -- fs_test_boottime()
         sys.wait(1000)
 
     end

@@ -17,8 +17,8 @@ _G.sys = require("sys")
 require("t1_display")     --setup lcd
 
 require("t2_lvgl_demo")
-require("t2_label_align")
-require("t2_ext_font")
+-- require("t2_label_align")
+-- require("t2_ext_font")
 
 -- require("t3_mpu6050")  --setup mpu6050
 -- require("t3_mpucont")
@@ -49,6 +49,8 @@ T3_lvgl_test = 0
 T5_uart_demo = 0
 T5_uart_air551G = 0
 
+lcd.drawLine(20,30,50,30,0xF000)
+
 
 -- sys.timerLoopStart(function()
 --     log.info("GPS", libgnss.getIntLocation())
@@ -57,6 +59,8 @@ T5_uart_air551G = 0
 -- ================main start================
 sys.taskInit(function()
     -- ps:有wait不能放在外面
+
+    sys.wait(1000)
 
     init_status()
     test()

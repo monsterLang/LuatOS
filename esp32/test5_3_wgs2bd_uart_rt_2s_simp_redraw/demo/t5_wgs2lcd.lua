@@ -27,6 +27,9 @@ function rt_draw_line()
             a,b,c,d = judge_lcd_xy_same(LCD_list[2*LCD_list_temp_num-3],LCD_list[2*LCD_list_temp_num-2],LCD_list[2*LCD_list_temp_num-1],LCD_list[2*LCD_list_temp_num])
             print(a,b,c,d)
 
+            if a==c and b == d then
+                return
+            end
             log.info("lcd.drawLine", lcd.drawLine(a,b,c,d,0x001F))
 
         end
@@ -36,11 +39,19 @@ end
 
 function rt_draw_circle()
 
+    print("lcd,point ",LCD_list_temp_num,LCD_list[2*LCD_list_temp_num-1],LCD_list[2*LCD_list_temp_num])
     -- 画当前的点
-    log.info("lcd.drawCircle", lcd.drawCircle(LCD_list[2*LCD_list_temp_num-1],LCD_list[2*LCD_list_temp_num],1,0xF800))
+    if LCD_list_temp_num == 1 then
+        -- 起始点为黑色
+        log.info("lcd.drawCircle", lcd.drawCircle(LCD_list[1],LCD_list[2],2,0xFFFF))
+    else
+        log.info("lcd.drawCircle", lcd.drawCircle(LCD_list[2*LCD_list_temp_num-1],LCD_list[2*LCD_list_temp_num],1,0xF800))
+    end
+    
 
     -- 显示坐标信息（lcd/经纬度）
     m_BD = "BD:"..cur_BD[1].." , "..cur_BD[2]
+    m_lcd_cur = "lcd:"..LCD_cur_x.." , "..LCD_cur_y
     m_lcd = "lcd:"..LCD_list[2*LCD_list_temp_num-1].." , "..LCD_list[2*LCD_list_temp_num]
     -- log.info(type(m),m)
 
@@ -48,7 +59,7 @@ function rt_draw_circle()
     lcd.fill(0, 145, 64, 160)
     lcd.setFont(lcd.font_opposansm8)    --设置字体
     lcd.drawStr(0,140,m_BD)            -- 显示经纬度
-    lcd.drawStr(0,155,m_lcd)            -- 显示经纬度
+    lcd.drawStr(0,155,m_lcd_cur)            -- 显示经纬度
     -- log.info("LCD_list_temp_num",LCD_list_temp_num)
 
     -- 画线
@@ -73,10 +84,10 @@ function rt_wgs2lcd()
     -- print(num_rt_receive)
     lcd.fill(64, 145, 128, 160)
     lcd.setFont(lcd.font_opposansm8)
-    lcd.drawStr(64,155,num_rt_receive)
+    lcd.drawStr(64,155,num_rt_receive.."  ["..rt_status.."]")
 
     -- 注意此时状态为字符型
-    if rt_status == "1" then
+    if rt_status == "1" or rt_status == "2"then
 
         -- 未定位起始点
         if status_P00 == 0 then
@@ -137,6 +148,11 @@ function rt_wgs2lcd()
         print("************** point end****************")
         end
 
+
+        -- 如果超过了范围
+        judge_overlcd()
+
+
         rt_status = "0"
     else
         -- print("当前未定位")
@@ -155,6 +171,83 @@ function realtime_test()
     end
 end
 
+-- 当超过范围时则缩小比例并重新绘制
+function judge_overlcd()
+    print("enter judge_overlcd")
+    if status_over_lcd == 1 then
+        print("enter judge_overlcd 1")
+        status_over_lcd = 0
+        redraw_scalemax()
+    end
+end
+
+function redraw_scalemax()
+    print("重新绘制")
+    lcd.clear()
+    -- lcd.fill(64, 145, 128, 160)
+    lcd.setFont(lcd.font_opposansm8)
+    lcd.drawStr(0,64,"scalemax changes")
+    lcd.drawStr(0,84,scale_max)
+
+    sys.wait(2000)
+    set_scale_max( 1.8 * scale_max )
+    lcd.clear()
+    LCD_list  = {}         -- 起始点再中心
+    LCD_list_temp_num = 0       -- 当前处理的lcd点数
+    print("LCD_list_temp_num_max",LCD_list_temp_num_max)
+    -- print("lcd list",LCD_list)
+    -- 暂时关闭uart
+    -- uart_re_open = 0
+
+    -- 重新绘制
+    rt_redraw_BDlib()
+
+    -- 打开uart
+    -- uart_re_open = 1
+end
+
+
+function rt_redraw_BDlib()
+    log.info("rt_redraw_BDlib ---------------")
+
+    for i = 2, LCD_list_temp_num_max, 1 do
+        LCD_list_temp_num = LCD_list_temp_num + 1
+
+        cur_BD[1] = xy_list_BD[2*i-1]     -- 测试，从表中取出点
+        cur_BD[2] = xy_list_BD[2*i]
+
+        -- 设置当前值
+        log.info("***lcd point",i,cur_BD[1],cur_BD[2])
+        a , b = BD2lcd()
+        -- print(a , b)
+        table.insert(LCD_list,a)
+        table.insert(LCD_list,b)
+
+        -- draw_line()
+        rt_draw_circle()
+
+        print("LCD_list:"..table.concat( LCD_list, ","))
+        
+        -- GGA_bias2lcd_point()                        -- 执行转换坐标函数
+
+        -- 若最大值更新执行
+        -- redraw_line()
+        -- sys.wait(1000)
+    end
+    print("first lcd display over =================")
+    print("LCD_list:"..table.concat( LCD_list, ","))
+
+    -- 加上判定
+    -- redraw_pic()
+
+    -- log.info("xy_list_BD_temp_num",xy_list_BD_temp_num)
+    uart_re_open = 1
+    log.info("redraw end ---------------")
+end
+
+
+
+-- 偏移起始点
 function rt_redraw_pic()
 
     -- print("BD_range",BD_x_max,BD_x_min,BD_y_max,BD_y_min)
@@ -186,7 +279,6 @@ function rt_redraw_pic()
         -- P00_LCD = {64,64}
         print("P00_LCD",table.concat(P00_LCD , " , "  ))
         LCD_list  = {}
-        xy_list_BD_temp_num = 0     -- 当前处理BD点数
         LCD_list_temp_num = 0       -- 当前处理的lcd点数
         -- test()
     else

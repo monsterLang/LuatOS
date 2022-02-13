@@ -28,9 +28,15 @@ LCD_x_min = 0
 LCD_y_max = 128
 LCD_y_min = 0
 
+status_over_lcd = 0
+
+LCD_cur_x = 0
+LCD_cur_y = 0
+
 -- 存储画点数据
 LCD_list = {}
 LCD_list_temp_num = 0
+LCD_list_temp_num_max = 0
 xy_list_BD = { 
 
 }
@@ -81,6 +87,7 @@ function judge_BD_range(x_c,y_c)
         BD_y_min = y_c
     end
     end
+
     -- print("BD_range",BD_x_max,BD_x_min,BD_y_max,BD_y_min)
 end
 
@@ -108,13 +115,14 @@ function BD_cur_bias(x_c,y_c,x_0,y_0)
         BD_bias_x = x_c - x_0
         BD_bias_y = y_c - y_0
         judge_BD_range(x_c,y_c)
-    end
-    
+    end 
+
+    print("BD",cur_BD[1],cur_BD[2],P00_BD[1],P00_BD[2])
     -- 存储当前BD偏移
     cur_BD_bias[1] = BD_bias_x
     cur_BD_bias[2] = BD_bias_y
 
-    -- print("BD_cur_bias",table.concat(cur_BD_bias,','))
+    print("BD_cur_bias",table.concat(cur_BD_bias,','))
     -- print(BD_bias_x,BD_bias_y)
     return BD_bias_x,BD_bias_y
     
@@ -128,7 +136,7 @@ function Ref_cur_bias(x,y,lcdmax,scalemax)
         Ref_bias_y = math.floor(cur_BD_bias[2]*LCD_max/(scale_max))   -- + P00_Ref[2]
     else
         Ref_bias_x = math.floor(x*lcdmax/(scalemax))   -- + P00_Ref[1]
-        Ref_bias_y = math.floor(x*lcdmax/(scalemax))   -- + P00_Ref[2]
+        Ref_bias_y = math.floor(y*lcdmax/(scalemax))   -- + P00_Ref[2]
     end
 
     -- 存储参考偏移
@@ -137,6 +145,12 @@ function Ref_cur_bias(x,y,lcdmax,scalemax)
 
     -- print("Ref_cur_bias",table.concat(cur_Ref,','))
     return Ref_bias_x,Ref_bias_y
+end
+
+function close_uart()
+    status_over_lcd = 1
+    uart_re_open = 0
+    
 end
 
 function LCD_cur(x_c,y_c,x_0,y_0)
@@ -151,20 +165,30 @@ function LCD_cur(x_c,y_c,x_0,y_0)
         LCD_y = y_0-y_c
     end
 
+    print("lcd: P00",P00_LCD[1],P00_LCD[2],cur_Ref[1],cur_Ref[2])
+
+    LCD_cur_x = LCD_x
+    LCD_cur_y = LCD_y
     print("LCD_cur",LCD_x..' , '..LCD_y)
 
     -- 防止超出屏幕
     if LCD_x > LCD_x_max  then
         LCD_x = LCD_x_max
+        close_uart()
     elseif LCD_x < LCD_x_min then
         LCD_x = LCD_x_min
+        close_uart()
     end
 
     if LCD_y > LCD_y_max  then
         LCD_y = LCD_y_max
+        close_uart()
     elseif LCD_y < LCD_y_min then
         LCD_y = LCD_y_min
+        close_uart()
     end
+
+    print("status_over_lcd",status_over_lcd)
 
     -- 存储参数
     cur_LCD[1] = LCD_x
@@ -174,7 +198,11 @@ function LCD_cur(x_c,y_c,x_0,y_0)
     table.insert(LCD_list,LCD_x)
     table.insert(LCD_list,LCD_y)
     LCD_list_temp_num = LCD_list_temp_num + 1
-    print("LCD_list_temp_num: ", LCD_list_temp_num)         -- 显示当前记录的点个数
+
+    if LCD_list_temp_num > LCD_list_temp_num_max then
+        LCD_list_temp_num_max = LCD_list_temp_num
+    end
+    print("LCD_list_temp_num: ", LCD_list_temp_num,"LCD_list_temp_num_max: "..LCD_list_temp_num_max)         -- 显示当前记录的点个数
 
     -- print("LCD_cur",table.concat(cur_LCD,' , '))
     return LCD_x,LCD_y

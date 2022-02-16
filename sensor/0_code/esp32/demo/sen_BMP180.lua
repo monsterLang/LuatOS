@@ -1,4 +1,4 @@
---- 模块功能：I2C BMP180功能测试.
+--- 模块功能：I2C BMP180功能测试.   气压温度海拔传感器
 -- @author denghai
 -- @module i2c.BMP180
 -- @license MIT

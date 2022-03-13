@@ -1,0 +1,58 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>client1</title>
+</head>
+<body>
+    <h1>Client 1</h1>
+    <input id="sendTxt" type="text"/>
+    <button id="sendBtn">发送</button>
+    <button id="closeBtn">断开</button>
+    <div id="recv"></div>
+    <script type="text/javascript">
+        var websocket = new WebSocket("ws://124.221.115.14:3001");
+
+        function restart()
+        {
+           if(websocket.readyState===1)
+           {
+               console.log('websocket is connecting');
+           }else
+           {
+              console.log('websocket is not connected');
+              websocket.onopen();
+
+           }
+        }
+
+        websocket.onopen = function(){
+            console.log('websocket open');
+            document.getElementById('recv').innerHTML = 'Connected'+"<br>";
+        }
+
+        websocket.onclose = function(){
+            console.log('websocket has closed');
+            //websocket.close();
+        }
+
+        websocket.onmessage = function(event){
+            console.log(event.data);
+            document.getElementById('recv').innerHTML += event.data +"<br>";
+        }
+
+        document.getElementById('sendBtn').onclick = function(){
+            var txt = document.getElementById('sendTxt').value;
+            restart();
+            websocket.send(txt);
+            console.log('send');
+        }
+        document.getElementById('closeBtn').onclick = function(){
+            //var txt = document.getElementById('sendTxt').value;
+            //websocket.send(txt);
+            console.log('close');
+            websocket.onclose();
+        }
+
+    </script>
+</body>
+</html>

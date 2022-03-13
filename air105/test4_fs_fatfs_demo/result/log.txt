@@ -1,0 +1,60 @@
+[2022-02-28 21:06:32.902] X8yZRemote_Upgrade 430:no ota info
+[2022-02-28 21:06:32.902] main 615:bootloader build release Feb 28 2022 14:26:21!
+[2022-02-28 21:06:32.902] Jump_AppRun 78:jump to 0x01010400 !
+[2022-02-28 21:06:32.902] main 174:APP Build release Feb 28 2022 14:26:49!
+[2022-02-28 21:06:32.902] I/main LuatOS@air105 core V0007 bsp V0005
+[2022-02-28 21:06:32.902] I/main ROM Build: Feb 28 2022 17:29:53
+
+[2022-02-28 21:06:32.909] D/main loadlibs luavm 270336 51136 52280
+[2022-02-28 21:06:32.909] D/main loadlibs sys   328648 16272 16896
+[2022-02-28 21:06:32.909] spi reuslt:	0
+[2022-02-28 21:06:32.909] D/fatfs fatfs_init>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[2022-02-28 21:06:32.909] D/fatfs init sdcard at spi=2 cs=32
+[2022-02-28 21:06:32.909] D/luat.fatfs disk_open >> 0
+[2022-02-28 21:06:32.909] D/fatfs [FatFS]fatfs_init success
+[2022-02-28 21:06:32.909] D/fatfs fatfs_init<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[2022-02-28 21:06:32.909] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.909] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.909] I/user.fatfs	err	3
+[2022-02-28 21:06:32.909] D/fatfs f_open /boottime rb
+[2022-02-28 21:06:32.909] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.909] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.909] D/fatfs f_open /boottime 3
+[2022-02-28 21:06:32.909] D/vfs fopen /sd/boottime rb not found
+[2022-02-28 21:06:32.909] I/user.fs	boot count	0
+[2022-02-28 21:06:32.909] D/fatfs f_open /boottime wb
+[2022-02-28 21:06:32.909] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.909] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.909] D/fatfs f_open /boottime 3
+[2022-02-28 21:06:32.909] D/vfs fopen /sd/boottime wb not found
+[2022-02-28 21:06:32.909] W/user.sdio	mount not good?!
+[2022-02-28 21:06:32.909] E/vfs no such mount point /
+[2022-02-28 21:06:32.909] I/user.fsstat	false
+[2022-02-28 21:06:32.909] I/user.fsstat	true	909261362	824193586	17952	fatfs
+[2022-02-28 21:06:32.909] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.909] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.948] D/fatfs f_open /test_a w
+[2022-02-28 21:06:32.950] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.950] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.950] D/fatfs f_open /test_a 3
+[2022-02-28 21:06:32.950] D/vfs fopen /sd/test_a w not found
+[2022-02-28 21:06:32.950] D/fatfs f_open /test_a a+
+[2022-02-28 21:06:32.950] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.950] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.950] D/fatfs f_open /test_a 3
+[2022-02-28 21:06:32.950] D/vfs fopen /sd/test_a a+ not found
+[2022-02-28 21:06:32.950] D/fatfs f_open /test_a r
+[2022-02-28 21:06:32.950] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.950] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.973] D/fatfs f_open /test_a 3
+[2022-02-28 21:06:32.973] D/vfs fopen /sd/test_a r not found
+[2022-02-28 21:06:32.973] D/fatfs f_open /testline w
+[2022-02-28 21:06:32.973] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:32.973] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:32.973] D/fatfs f_open /testline 3
+[2022-02-28 21:06:32.973] D/vfs fopen /sd/testline w not found
+[2022-02-28 21:06:33.074] D/fatfs f_open /testline r
+[2022-02-28 21:06:33.074] D/luat.fatfs disk_initialize >> 0
+[2022-02-28 21:06:33.074] SDHC_SpiInitCard 442:sdcard init fail!
+[2022-02-28 21:06:33.074] D/fatfs f_open /testline 3
+[2022-02-28 21:06:33.074] D/vfs fopen /sd/testline r not found

@@ -1,124 +1,131 @@
---- 模块功能：lvgldemo
--- @module lvgl
--- @author Dozingfiretruck
--- @release 2021.01.25
+--- 模块功能: lvgl img
+-- @module lcd
+-- @author youkai
+-- @release 2022.02.19
 
 -- LuaTools需要PROJECT和VERSION这两个信息
-PROJECT = "lvgldemo"
+PROJECT = "esp32_lvgl_img_test_display"
 VERSION = "1.0.0"
-
-LV_LOG_LEVEL  = 3
 
 log.info("main", PROJECT, VERSION)
 
 -- sys库是标配
 _G.sys = require("sys")
 
-function init_esp32_st7735 ()
-    log.info("===init lcd")
-    spi_lcd = spi.deviceSetup(2,7,0,0,8,20000000,spi.MSB,1,1)
+require("t1_display")
+require("t2_lvgl_demo")
 
-    log.info("lcd.init",
-    -- st7735 + esp32
-    lcd.init("st7735",{port = "device",pin_dc = 6, pin_pwr = 11,pin_rst = 10,direction = 0,w = 128,h = 160,xoffset = 0,yoffset = 0},spi_lcd))
+-- function init_esp32_st7735()
+--     spi_lcd = spi.deviceSetup(2,7,0,0,8,96*1000*1000,spi.MSB,1,1)
+--     log.info("lcd.init",
+--     -- st7735 + esp32
+--     lcd.init("st7735",{port = "device",pin_dc = 6, pin_pwr = 11,pin_rst = 10,direction = 0,w = 128,h = 160,xoffset = 0,yoffset = 0},spi_lcd))
+-- end
 
-    log.info("LCD OK.")
+-- function init_lvgl()
+--     log.info("init lvgl")
+--     if lvgl.init(128,160) == true then
+--         log.debug("lvgl init ok.")
+--     else
+--         log.debug("lvgl init error.")
+--     end
+-- end
+
+-- function lvgl_img_test(file_path)
+--     print("in lvgl_img_test")
+--     local demo_img_label = lvgl.label_create(lvgl.scr_act(), nil)
+--     lvgl.obj_set_size(demo_img_label,128,160)
+--     print("demo_img_label",demo_img_label)
+--     local img = lvgl.img_create(demo_img_label,nil)			--
+--     print("img",img)
+--     log.info("img_set_src",lvgl.img_set_src(img, file_path))		--设置图片来源
+
+--     log.info("obj_align",lvgl.obj_align(img, lvgl.scr_act(), lvgl.ALIGN_CENTER, 0, 0)) 	--图片居中
+--     log.info("scr_load",lvgl.scr_load(demo_img_label))
+--     log.info("lvgl demo: img_png")
+-- end
+
+function lvgl_img(file_path)
+    print("in lvgl_img")
+    local demo_img_cont = lvgl.cont_create(lvgl.scr_act(), nil)
+    lvgl.obj_set_size(demo_img_cont,128,160)
+    print("demo_img_cont",demo_img_cont)
+    local img = lvgl.img_create(demo_img_cont,nil)			--
+    print("img",img)
+    log.info("img_set_src",lvgl.img_set_src(img, file_path))		--设置图片来源
+
+    log.info("obj_align",lvgl.obj_align(img, lvgl.scr_act(), lvgl.ALIGN_CENTER, 0, 0)) 	--图片居中
+    log.info("scr_load",lvgl.scr_load(demo_img_cont))
+    log.info("lvgl demo: img_png")
 end
 
 
-function arc()
-    -- 1. 初始化
-    --{
-    -- scr = lvgl.obj_create(nil, nil)
-    -- arc = lvgl.arc_create(scr, nil)  -- 创建曲线
-    arc = lvgl.arc_create(lvgl.scr_act(), nil)  -- 创建曲线
-    lvgl.obj_set_size(arc, 128, 128)            -- 设置尺寸
-    lvgl.obj_align(arc, nil, lvgl.ALIGN_CENTER, 0, 0)-- 设置位置居中
-    -- 绘制弧度
-    -- lvgl.arc_set_end_angle(arc, 100)
-    -- }
+function lvgl_img_test(file_path)
+    -- print("in lvgl_img")
+    -- local demo_img_cont = lvgl.cont_create(lvgl.scr_act(), nil)
+    -- lvgl.obj_set_size(demo_img_cont,128,160)
+    -- print("demo_img_cont",demo_img_cont)
+    -- local img = lvgl.img_create(demo_img_cont,nil)			--
+    -- print("img",img)
+    -- log.info("img_set_src",lvgl.img_set_src(img, file_path))		--设置图片来源
 
-    -- -- 方法1：直接是设置固定角度
-    -- -- 绘制背景角度
-    -- lvgl.arc_set_bg_angles(arc, 0, 180) --背景0-180度
-    -- -- 绘制前景角度（填充的）
-    -- lvgl.arc_set_angles(arc, 0, 90)     --前景0-90度
-    -- log.info("scr_load",lvgl.scr_load(arc))--显示
+    -- log.info("obj_align",lvgl.obj_align(img, lvgl.scr_act(), lvgl.ALIGN_CENTER, 0, 0)) 	--图片居中
+    -- log.info("scr_load",lvgl.scr_load(demo_img_cont))
+    -- log.info("lvgl demo: img_png")
 
-    -- -- 方法2：设置背景角度后，设置背景范围，通过传入数值显示
-    -- lvgl.arc_set_bg_angles(arc, 150, 30) --背景0-180度
-    -- lvgl.arc_set_range(arc, 0, 100)      --设置数值范围
-    -- lvgl.arc_set_value(arc, 30)          --传入数值
-    -- log.info("scr_load",lvgl.scr_load(arc))--显示
+    scr = lvgl.obj_create()
+    img = lvgl.img_create(scr,nil)			--
+    style_img = lvgl.style_create()
 
-    -- 方法3：隔1s显示不同数值
-    lvgl.arc_set_bg_angles(arc, 150, 30) --背景0-180度
-    lvgl.arc_set_adjustable(arc, true)   --允许输入
-    lvgl.arc_set_value(arc, 30)          --传入数值
-    log.info("scr_load",lvgl.scr_load(arc))--显示
+	lvgl.style_set_image_recolor(style_img, lvgl.STATE_DEFAULT, lvgl.color_make(0xff, 0xff, 0xff))
+	lvgl.style_set_image_recolor_opa(style_img, lvgl.STATE_DEFAULT, 0)
+	lvgl.style_set_image_opa(style_img, lvgl.STATE_DEFAULT, 125)
+	lvgl.obj_add_style(img, lvgl.IMG_PART_MAIN, style_img)
+	lvgl.obj_set_pos(img, 0, 0)
+	lvgl.obj_set_size(img, 128, 160)
+	-- lvgl.obj_set_click(img, true)
+	lvgl.img_set_src(img,file_path)
+	lvgl.img_set_pivot(img, 0,0)
+	lvgl.img_set_angle(img, 0)
 
-    sys.wait(1000)                       -- 等1s传入新值
-    lvgl.arc_set_value(arc, 50)          --传入数值
+    log.info("scr_load",lvgl.scr_load(scr))
 
-    m = lvgl.scr_load(arc)
-    log.info(m)
-    -- log.info("scr_load",lvgl.scr_load(arc))
-    sys.wait(1000)
-
-    log.info("lvgl demo: arc")
-
-    -- test
-    y = 0
-    log.info(y)
-
-    -- temp_status = lvgl.obj_clean(scr)
-    -- temp_status = lvgl.obj_del(arc)
-    temp_status = lvgl.obj_clean(arc)
-    log.info(temp_status)    --清除其内容
-
-    x = 1
-    log.info(x)
-    -- log.info("scr_load",lvgl.scr_load(arc))--显示
-    -- lvgl.obj_del(arc)           --删除
+    -- lvgl.img_set_src(img, file_path)		--设置图片来源
+    -- lvgl.obj_align(img, lvgl.scr_act(), lvgl.ALIGN_CENTER, 0, 0) 	--图片居中
+    -- log.info("scr_load",lvgl.scr_load(scr))
+    -- log.info("lvgl demo: img_bmp")
 end
 
-log.info("start----------------")
 
+log.info("end require")
+
+--添加硬狗防止程序卡死
+-- wdt.init(15000)--初始化watchdog设置为15s
+-- sys.timerLoopStart(wdt.feed, 10000)--10s喂一次狗
+
+-- 初始化屏幕
 init_esp32_st7735 ()
-
-LCD_W, LCD_H = 128,160
--- LCD_W, LCD_H = spi_lcd.getSize()
-log.info("lcd", "size", LCD_W, LCD_H )
-
-
-log.info("init lvgl")
--- log.info("lvgl", lvgl.init(128,160))
-m = lvgl.init(128,160)
-log.info(m)
-if ( m == true )
--- if ( lvgl.init(128,160) == true )
-
-then
-    log.debug("lvgl init ok.")
-else
-    log.debug("lvgl init error.")
-end
-
-
-log.info("end----------------")
-
--- x = lvgl.theme_set_act("mono")
--- log.info(x)
+init_lvgl()
 
 sys.taskInit(function()
-    arc()
+    -- ps:有wait不能放在外面
+    -- demo_img_symble()
+
+    -- sys.wait(5000)
+    -- print("xxx")
+    -- -- img_path = "/luadb/bbb.bin"
+    -- img_path = "/luadb/0.jpg"
+    img_path = "/luadb/logo.jpg"
+    -- -- img_path = "/luadb/test3.bmp"
+    -- -- img_path = "/luadb/RedPack_.jpg"
+
+    log.info("fsize:"..img_path, fs.fsize(img_path))
+
+    lvgl_img_test(img_path)
+
     while 1 do
-        sys.wait(1000)
+        sys.wait(10)
     end
 end)
 
-
--- 用户代码已结束---------------------------------------------
--- 结尾总是这一句
 sys.run()
--- sys.run()之后后面不要加任何语句!!!!!
